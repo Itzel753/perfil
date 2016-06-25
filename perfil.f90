@@ -8,7 +8,8 @@ implicit none
 real(kind=8) :: boxx,boxy,delta_y,pi,angy
 integer      :: npart,i,bins,biny
 real(kind=8) :: s2
-real(kind=8), dimension(:), allocatable :: pos_x,pos_y,ang_part,s2_array,t_bin
+real(kind=8), dimension(:), allocatable :: pos_x,pos_y,ang_part,s2_array
+integer, dimension(:), allocatable :: t_bin
 
 open (unit=8, file='confout.txt')
 read(8,*)
@@ -33,15 +34,16 @@ enddo
 
 close(8)
 
-bins=20
+bins=80
 allocate(t_bin(bins))
 allocate(s2_array(bins))
-do i = 1, bins
-   s2_array(i) = 0.0
-enddo
+
+s2_array(i) = 0.0
+t_bin = 0
 
 !se da el tamaño del bin
-delta_y=boxy/dble(bins)
+delta_y = boxy/dble(bins)
+!write(*,*)delta_y
 
 !se le asiga un bin a cada partícula 
 do i = 1, npart
@@ -49,15 +51,22 @@ do i = 1, npart
    if (biny == 0) stop("biny es igual a cero")
    !se calcula el parámetro de orden
    s2 = cos(2*ang_part(i))
-   s2_array(biny) = s2_array(biny) + s2 !contabiliza cuantas particulas hay en una caja
-   t_bin(biny) = t_bin(biny) +1
+   s2_array(biny) = s2_array(biny) + s2 !suma el parametro de orden de las particulas dentro de un bin
+   t_bin(biny) = t_bin(biny) + 1  !contabiliza el numero de particulas dentro de un bin
 enddo
 
-s2_array (:) = s2_array(:)/t_bin(:)
+s2_array(:) = s2_array(:)/t_bin(:) !saca el parametro de orden dentro de un bin
+
+!cerca del eje x casi no vamos a encontrar particulas
+do i=1,bins 
+if (t_bin(i)==0)then 
+s2_array(i)=0 
+endif
+enddo
 
 open (unit=21, file='salida.dat')
 do i = 1, bins
-   write(21,*) i*delta_y, abs(s2_array(i))
+   write(21,*) i*delta_y, s2_array(i)
 enddo
 close(21)
 
